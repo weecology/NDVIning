@@ -36,9 +36,6 @@ library(ggplot2)
 # saveRDS(modis_ndvi, file = "data/modis_ndvi_raw.RDS")
 # saveRDS(modis_vi_quality, file = "data/modis_vi_quality.RDS")
 
-modis_ndvi_raw <- readRDS("data/modis_ndvi_raw.RDS")
-modis_vi_quality <- readRDS("data/modis_vi_quality.RDS")
-
 # this map is taken from Table 5, describing the bit code for the VI Quality 
 # scientific data set, for MOD13A1 / MOD13A1 in the 
 # "MODIS Vegetation Index User's Guide", retrieved from 
@@ -118,30 +115,33 @@ map_vi_quality <- function(pixel_value)
     return(out)
 }
 
-cols <- c("xllcorner", "yllcorner", "cellsize", "latitude", "longitude", 
-          "start", "end", "modis_date", "calendar_date", "tile")
-modis_vi_quality <- bind_cols(select(modis_vi_quality, cols)
-
-if (NROW(modis_ndvi) == NROW(modis_vi_quality) && 
-    all.equal(modis_ndvi[, cols], modis_vi_quality[, cols], check.attributes = FALSE))
-{
-    modis_ndvi_raw <- bind_cols(modis_ndvi_raw, 
-                                select(modis_vi_quality, -cols))
-    
-    modis_ndvi_processed <- modis_ndvi_raw %>%
-        filter(vi_usefulness == "Highest quality", 
-               aerosol_quantity == "Low", 
-               adjacent_cloud_detected == "No", 
-               mixed_clouds == "No") %>%
-        mutate(ndvi = value * as.numeric(scale)) %>%
-        group_by(calendar_date) %>%
-        summarize(ndvi = mean(ndvi)) %>%
-        mutate(date = as.Date(calendar_date)) %>%
-        select(date, ndvi) %>%
-        mutate(sensor = "MODIS", source = "MODISTools")
-    
-    saveRDS(modis_ndvi_processed, file = "data/modis_ndvi_processed.RDS")
-}
+# modis_ndvi_raw <- readRDS("data/modis_ndvi_raw.RDS")
+# modis_vi_quality <- readRDS("data/modis_vi_quality.RDS")
+# cols <- c("xllcorner", "yllcorner", "cellsize", "latitude", "longitude", 
+#           "start", "end", "modis_date", "calendar_date", "tile")
+# modis_vi_quality <- bind_cols(select(modis_vi_quality, cols), 
+#                               map_vi_quality(modis_vi_quality$value))
+# 
+# if (NROW(modis_ndvi_raw) == NROW(modis_vi_quality) && 
+#     all.equal(modis_ndvi_raw[, cols], modis_vi_quality[, cols], check.attributes = FALSE))
+# {
+#     modis_ndvi_raw <- bind_cols(modis_ndvi_raw, 
+#                                 select(modis_vi_quality, -cols))
+#     
+#     modis_ndvi_processed <- modis_ndvi_raw %>%
+#         filter(vi_usefulness == "Highest quality", 
+#                aerosol_quantity == "Low", 
+#                adjacent_cloud_detected == "No", 
+#                mixed_clouds == "No") %>%
+#         mutate(ndvi = value * as.numeric(scale)) %>%
+#         group_by(calendar_date) %>%
+#         summarize(ndvi = mean(ndvi)) %>%
+#         mutate(date = as.Date(calendar_date)) %>%
+#         select(date, ndvi) %>%
+#         mutate(sensor = "MODIS", source = "MODISTools")
+#     
+#     saveRDS(modis_ndvi_processed, file = "data/modis_ndvi_processed.RDS")
+# }
 
 modis_ndvi_processed <- readRDS("data/modis_ndvi_processed.RDS")
 
@@ -174,13 +174,15 @@ read_in_GEE_landsat_NDVI <- function(file = "Landsat5_SR_NDVI_Portal_1984_2011.c
 
 landsat_5 <- read_in_GEE_landsat_NDVI("Landsat5_SR_NDVI_Portal_1984_2011.csv")
 landsat_7 <- read_in_GEE_landsat_NDVI("Landsat7_SR_NDVI_Portal_1999_2020.csv")
+landsat_8 <- read_in_GEE_landsat_NDVI("Landsat8_SR_NDVI_Portal_2013_2020.csv")
 
 #### combine datasets and plot ----
 ndvi_dat <- bind_rows(modis_ndvi_processed, 
                       gimms_ndvi, 
                       landsat_ndvi, 
                       landsat_5, 
-                      landsat_7) %>%
+                      landsat_7, 
+                      landsat_8) %>%
     mutate(label = paste0(sensor, " (", source, ")"))
 
 p <- ggplot(ndvi_dat, aes(x = date, y = ndvi, color = label)) + 

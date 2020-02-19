@@ -5,6 +5,8 @@ var startdate1 = '1984-01-01';
 var enddate1 = '2011-12-31';
 var startdate2 = '1999-01-01';
 var enddate2 = '2020-12-31';
+var startdate3 = '2013-01-01';
+var enddate3 = '2020-12-31';
 
 // define circle around Portal
 var studyarea = ee.Geometry.Point([-109.080, 31.938]).buffer(buffersize); 
@@ -14,6 +16,12 @@ Map.addLayer(studyarea)
 // function to calculate NDVI and add it to image as a band 
 var addNDVI = function(image) {
   var ndvi = image.normalizedDifference(['B4', 'B3']).rename('NDVI');
+  return image.addBands(ndvi);
+};
+
+// function to calculate NDVI and add it to image as a band 
+var addNDVI_landsat8 = function(image) {
+  var ndvi = image.normalizedDifference(['B5', 'B4']).rename('NDVI');
   return image.addBands(ndvi);
 };
 
@@ -54,6 +62,9 @@ var landsat7_time2 = ee.ImageCollection('LANDSAT/LE07/C01/T1_SR')
   .filterDate(startdate2, enddate2)
   .filterBounds(studyarea);
 
+var landsat8_time3 = ee.ImageCollection("LANDSAT/LC08/C01/T1_SR")
+  .filterDate(startdate3, enddate3)
+  .filterBounds(studyarea);
 
 // Apply cloud mask and ndvi functions to time section 1
 var maskedcollection_time1 = landsat5_time1
@@ -75,6 +86,15 @@ var maskedcollection_time2 = landsat7_time2
 // Calculate mean ndvi per image
 var studyareandvi_time2 = maskedcollection_time2.map(getmeanndvi);
 
+// Apply cloud mask and ndvi functions to time section 3
+var maskedcollection_time3 = landsat8_time3
+  .map(cloudMaskL457)
+  .map(addNDVI_landsat8)
+  .select('NDVI');
+
+// Calculate mean ndvi per image
+var studyareandvi_time3 = maskedcollection_time3.map(getmeanndvi);
+
 // Export the results (to your google drive)
 Export.table.toDrive({
   collection: studyareandvi_time1,
@@ -88,3 +108,8 @@ Export.table.toDrive({
   fileFormat: 'CSV'
 });
 
+Export.table.toDrive({
+  collection: studyareandvi_time3,
+  description: 'Landsat8_SR_NDVI_Portal_2013_2020',
+  fileFormat: 'CSV'
+});
