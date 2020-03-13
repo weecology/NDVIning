@@ -1,14 +1,35 @@
 library(MODISTools)
 library(portalr)
+library(gimms)
+library(sp)
+library(rgdal)
 library(dplyr)
 library(tidyr)
 library(stringr)
 library(ggplot2)
 
 source("get_modis_ndvi.R")
+source("gimms_NDVI_functions.R")
 
 # trying to match up geographical subset and coordinates from 
 # https://github.com/weecology/PortalData/tree/master/NDVI
+
+#### GIMMS NDVI ----
+gimms_ndvi_file <- "data/gimms_v0_ndvi.csv"
+if (file.exists(gimms_ndvi_file))
+{
+    gimms_ndvi <- read.csv(gimms_ndvi_file) %>%
+        mutate(date = lubridate::ymd(paste(year, month, day, "-")), 
+               sensor = "GIMMSv0", 
+               source = "GIMMS") %>%
+        select(date, ndvi, sensor, source) %>%
+        arrange(date)
+} else {
+    gimms_ndvi_data <- get_gimms_ndvi()
+    write.csv(gimms_ndvi_data, "data/gimms_v0_ndvi.csv", 
+              quote = FALSE, row.names = FALSE)
+}
+
 
 #### MODIS NDVI ----
 modis_ndvi_file <- "data/modis_ndvi_processed.RDS"
@@ -22,8 +43,8 @@ if (file.exists(modis_ndvi_file))
 
 #### portalr NDVI ----
 
-gimms_ndvi <- ndvi() %>%
-    mutate(sensor = "GIMMS", source = "portalr")
+gimms_ndvi_portalr <- ndvi() %>%
+    mutate(sensor = "GIMMSv0", source = "portalr")
 
 landsat_ndvi <- load_datafile(file.path("NDVI", 
                                         "Landsat_monthly_NDVI.csv")) %>%
@@ -54,6 +75,7 @@ landsat_8 <- read_in_GEE_landsat_NDVI("Landsat8_SR_NDVI_Portal_2013_2020.csv")
 #### combine datasets and plot ----
 ndvi_dat <- bind_rows(modis_ndvi_processed, 
                       gimms_ndvi, 
+                      gimms_ndvi_portalr, 
                       landsat_ndvi, 
                       landsat_5, 
                       landsat_7, 
