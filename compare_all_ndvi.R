@@ -8,8 +8,8 @@ library(tidyr)
 library(stringr)
 library(ggplot2)
 
-source("get_modis_ndvi.R")
-source("gimms_NDVI_functions.R")
+source("R/get_modis_ndvi.R")
+source("R/gimms_NDVI_functions.R")
 
 # trying to match up geographical subset and coordinates from 
 # https://github.com/weecology/PortalData/tree/master/NDVI
@@ -55,7 +55,7 @@ landsat_ndvi <- load_datafile(file.path("NDVI",
 
 #### Google Earth Engine NDVI ----
 
-read_in_GEE_landsat_NDVI <- function(file = "Landsat5_SR_NDVI_Portal_1984_2011.csv", 
+read_in_GEE_landsat_NDVI <- function(file = "data/Landsat5_SR_NDVI_Portal_1984_2011.csv", 
                                      sensor = str_extract(file, "Landsat[0-9]"))
 {
     read.csv(file = file) %>%
@@ -68,9 +68,9 @@ read_in_GEE_landsat_NDVI <- function(file = "Landsat5_SR_NDVI_Portal_1984_2011.c
         mutate(sensor = sensor, source = "Google Earth Engine")
 }
 
-landsat_5 <- read_in_GEE_landsat_NDVI("Landsat5_SR_NDVI_Portal_1984_2011.csv")
-landsat_7 <- read_in_GEE_landsat_NDVI("Landsat7_SR_NDVI_Portal_1999_2020.csv")
-landsat_8 <- read_in_GEE_landsat_NDVI("Landsat8_SR_NDVI_Portal_2013_2020.csv")
+landsat_5 <- read_in_GEE_landsat_NDVI("data/Landsat5_SR_NDVI_Portal_1984_2011.csv")
+landsat_7 <- read_in_GEE_landsat_NDVI("data/Landsat7_SR_NDVI_Portal_1999_2020.csv")
+landsat_8 <- read_in_GEE_landsat_NDVI("data/Landsat8_SR_NDVI_Portal_2013_2020.csv")
 
 #### combine datasets and plot ----
 ndvi_dat <- bind_rows(modis_ndvi_processed, 
