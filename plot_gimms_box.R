@@ -7,14 +7,15 @@ sp::coordinates(site) <- c("long", "lat")
 
 ndvi_values <- raster::extract(temp_raster, site, buffer = 10000, cellnumbers = TRUE)
 bb <- coordinates(temp_raster)[ndvi_values[[1]][,1],] %>%
-    as.data.frame()
+    as.data.frame() %>%
+    setNames(c("long", "lat"))
 
-saveRDS(bb, "gimms_coordinates_portal.RDS")
+saveRDS(bb, "data/gimms_coordinates_portal.RDS")
 
 library(ggplot2)
 to_plot <- bind_rows(bb %>% mutate(label = "GIMMS grid"), 
-                     data.frame(x = -109.08029, y = 31.937769, label = "Portal"))
-p <- ggplot(to_plot, aes(x = x, y = y, color = label)) + 
+                     site %>% mutate(label = "Portal"))
+p <- ggplot(to_plot, aes(x = long, y = lat, color = label)) + 
     geom_point(size = 4) + 
     scale_color_brewer(palette = "Paired") + 
     theme_bw() + 
