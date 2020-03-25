@@ -91,10 +91,10 @@ p <- ggplot(ndvi_dat, aes(x = date, y = ndvi, color = label)) +
 width <- 8
 height <- 5
 
-pdf("ndvi_comparison_figure.pdf", width = width, height = height)
+pdf("figures/ndvi_comparison_figure.pdf", width = width, height = height)
 print(p)
 dev.off()
 
-png("ndvi_comparison_figure.png", width = width * 100, height = height * 100)
+png("figures/ndvi_comparison_figure.png", width = width * 100, height = height * 100)
 print(p)
 dev.off()
