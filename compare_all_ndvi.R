@@ -8,7 +8,7 @@ library(tidyr)
 library(stringr)
 library(ggplot2)
 
-source("R/get_modis_ndvi.R")
+source("R/modis_NDVI_functions.R")
 source("R/gimms_NDVI_functions.R")
 
 # trying to match up geographical subset and coordinates from 
