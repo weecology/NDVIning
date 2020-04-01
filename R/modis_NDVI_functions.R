@@ -5,7 +5,7 @@ retrieve_modis_raw_data <- function(product = "MOD13Q1",
     products <- mt_products()
     bands <- mt_bands(product = product)
     dates <- mt_dates(product = product, lat = lat, lon = lon)
-
+    
     modis_ndvi <- mt_subset(product = product,
                             lat = lat,
                             lon = lon,
@@ -115,26 +115,26 @@ process_modis_raw_data <- function()
     modis_vi_quality <- readRDS("data/modis_vi_quality.RDS")
     cols <- c("xllcorner", "yllcorner", "cellsize", "latitude", "longitude",
               "start", "end", "modis_date", "calendar_date", "tile")
-    modis_vi_quality <- bind_cols(select(modis_vi_quality, cols),
-                                  map_vi_quality(modis_vi_quality$value))
+    modis_vi_quality <- dplyr::bind_cols(dplyr::select(modis_vi_quality, dplyr::all_of(cols)),
+                                         map_vi_quality(modis_vi_quality$value))
     
     if (NROW(modis_ndvi_raw) == NROW(modis_vi_quality) &&
         all.equal(modis_ndvi_raw[, cols], modis_vi_quality[, cols], check.attributes = FALSE))
     {
-        modis_ndvi_raw <- bind_cols(modis_ndvi_raw,
-                                    select(modis_vi_quality, -cols))
+        modis_ndvi_raw <- dplyr::bind_cols(modis_ndvi_raw,
+                                           dplyr::select(modis_vi_quality, -cols))
         
         modis_ndvi_processed <- modis_ndvi_raw %>%
-            filter(vi_usefulness == "Highest quality",
-                   aerosol_quantity == "Low",
-                   adjacent_cloud_detected == "No",
-                   mixed_clouds == "No") %>%
-            mutate(ndvi = value * as.numeric(scale)) %>%
-            group_by(calendar_date) %>%
-            summarize(ndvi = mean(ndvi)) %>%
-            mutate(date = as.Date(calendar_date)) %>%
-            select(date, ndvi) %>%
-            mutate(sensor = "MODIS", source = "MODISTools")
+            dplyr::filter(vi_usefulness == "Highest quality",
+                          aerosol_quantity == "Low",
+                          adjacent_cloud_detected == "No",
+                          mixed_clouds == "No") %>%
+            dplyr::mutate(ndvi = value * as.numeric(scale)) %>%
+            dplyr::group_by(calendar_date) %>%
+            dplyr::summarize(ndvi = mean(ndvi)) %>%
+            dplyr::mutate(date = as.Date(calendar_date)) %>%
+            dplyr::select(date, ndvi) %>%
+            dplyr::mutate(sensor = "MODIS", source = "MODISTools")
         
         saveRDS(modis_ndvi_processed, file = "data/modis_ndvi_processed.RDS")
     }
