@@ -4,6 +4,49 @@
 
 The goal of this project is to compare and understand the differences between different sources and methods for producing an NDVI (normalized difference vegetation index) time series at Portal, Arizona. The immediate goals of this analysis are to include a reference source of historical NDVI (i.e. going back to 1981) as part of the [`portalr`](https://github.com/weecology/portalr) project, and to support downstream projects, including [`portalcasting`](https://github.com/weecology/portalcasting).
 
+# Files
+
+```
+.
+├── LICENSE
+├── NDVIning.Rproj
+├── R
+│   ├── gimms_NDVI_functions.R
+│   ├── gimms_package_dropin_replacements.R
+│   ├── modis_NDVI_functions.R
+│   └── plot_gimms_box.R
+├── README.html
+├── README.md
+├── compare_all_ndvi.R
+├── data
+│   ├── Landsat4_SR_NDVI.csv
+│   ├── Landsat5_SR_NDVI_Portal_1984_2011.csv
+│   ├── Landsat7_SR_NDVI_Portal_1999_2020.csv
+│   ├── Landsat8_SR_NDVI_Portal_2013_2020.csv
+│   ├── gimms_coordinates_portal.RDS
+│   ├── gimms_v0_ndvi.csv
+│   ├── modis_ndvi_processed.RDS
+│   ├── modis_ndvi_raw.RDS
+│   └── modis_vi_quality.RDS
+├── docs
+│   ├── MODIS_VI_UsersGuide_June_2015_C6.pdf
+│   ├── gee_NDVI_Landsat_SR_Portal.txt
+│   └── gee_NDVI_readme.txt
+└── figures
+    ├── GIMMS_portal_map.pdf
+    ├── ndvi_comparison_figure.pdf
+    └── ndvi_comparison_figure.png
+```
+
+This repo is structured as an RStudio Project:
+
+* `data` contains both raw (`*.csv`) and processed (`*.RDS`) data files
+* `docs` contains code and instructions to retrieve Landsat data via Google Earth Engine (via Erica), and a technical document describing image quality bands for MODIS
+* `R` contains function definitions for dealing with data
+* `figures` contains figure outputs (comparison time series, and a map showing GIMMS output locations)
+* `compare_all_ndvi.R` combines the various NDVI sources and plots them as separate time series to show the similarities and differences
+* `compare_modis_gimms.R` was intended to check if the spatial sampling to match the location used by the GIMMS model would account for the differences in values.
+
 ## NDVI calculations
 
 NDVI is defined based on the reflectance in two spectral bands, Near Infrared (NIR) and Red:
