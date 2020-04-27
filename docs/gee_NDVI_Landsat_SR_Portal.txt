@@ -1,28 +1,29 @@
 // Define some variables: 
 //    buffer area around trapping plots, and start and end date
 var buffersize = 1000; // size of buffer around trapping center points (m)
-var startdate1 = '1984-01-01';
-var enddate1 = '2011-12-31';
-var startdate2 = '1999-01-01';
-var enddate2 = '2020-12-31';
-var startdate3 = '2013-01-01';
-var enddate3 = '2020-12-31';
+var startdate_l3 = '1978-02-01';
+var enddate_l3 = '1983-04-31';
+var startdate_l4 = '1982-07-01';
+var enddate_l4 = '2001-07-01';
+var startdate_l5 = '1984-01-01';
+var enddate_l5 = '2011-12-31';
+var startdate_l7 = '1999-01-01';
+var enddate_l7 = '2020-12-31';
+var startdate_l8 = '2013-01-01';
+var enddate_l8 = '2020-12-31';
 
 // define circle around Portal
 var studyarea = ee.Geometry.Point([-109.080, 31.938]).buffer(buffersize); 
 Map.addLayer(studyarea)
 
 
-// function to calculate NDVI and add it to image as a band 
-var addNDVI = function(image) {
-  var ndvi = image.normalizedDifference(['B4', 'B3']).rename('NDVI');
-  return image.addBands(ndvi);
-};
-
-// function to calculate NDVI and add it to image as a band 
-var addNDVI_landsat8 = function(image) {
-  var ndvi = image.normalizedDifference(['B5', 'B4']).rename('NDVI');
-  return image.addBands(ndvi);
+// make a function to calculate NDVI and add it to image as a band 
+var make_NDVI_func = function(ir_band, red_band) {
+  var f = function(image) {
+    var ndvi = image.normalizedDifference([ir_band, red_band]).rename('NDVI');
+    return image.addBands(ndvi);
+  };
+  return f;
 };
 
 // function from Examples > Cloud Masking > Landsat457
@@ -33,6 +34,15 @@ var cloudMaskL457 = function(image) {
   var cloud = qa.bitwiseAnd(1 << 5)
           .and(qa.bitwiseAnd(1 << 7))
           .or(qa.bitwiseAnd(1 << 3))
+  // Remove edge pixels that don't occur in all bands
+  var mask2 = image.mask().reduce(ee.Reducer.min());
+  return image.updateMask(cloud.not()).updateMask(mask2);
+};
+
+var cloudMaskL3 = function(image) {
+  var qa = image.select('BQA');
+  // If the cloud bit (4) is set, then it's a bad pixel.
+  var cloud = qa.bitwiseAnd(1 << 4);
   // Remove edge pixels that don't occur in all bands
   var mask2 = image.mask().reduce(ee.Reducer.min());
   return image.updateMask(cloud.not()).updateMask(mask2);
@@ -52,64 +62,90 @@ var getmeanndvi = function(image) {
   return ee.Feature(studyarea, means);
 }
 
-//Load Landsat5 collection: time section 1
-var landsat5_time1 = ee.ImageCollection('LANDSAT/LT05/C01/T1_SR')
-  .filterDate(startdate1, enddate1)
+print("Starting processing.");
+//Load Landsat4 collection
+var landsat4 = ee.ImageCollection('LANDSAT/LT04/C01/T1_SR')
+  .filterDate(startdate_l4, enddate_l4)
   .filterBounds(studyarea);
 
-//Load Landsat7 collection: time section 2
-var landsat7_time2 = ee.ImageCollection('LANDSAT/LE07/C01/T1_SR')
-  .filterDate(startdate2, enddate2)
+//Load Landsat5 collection
+var landsat5 = ee.ImageCollection('LANDSAT/LT05/C01/T1_SR')
+  .filterDate(startdate_l5, enddate_l5)
   .filterBounds(studyarea);
 
-var landsat8_time3 = ee.ImageCollection("LANDSAT/LC08/C01/T1_SR")
-  .filterDate(startdate3, enddate3)
+//Load Landsat7 collection:
+var landsat7 = ee.ImageCollection('LANDSAT/LE07/C01/T1_SR')
+  .filterDate(startdate_l7, enddate_l7)
   .filterBounds(studyarea);
 
-// Apply cloud mask and ndvi functions to time section 1
-var maskedcollection_time1 = landsat5_time1
+//Load Landsat8 collection:
+var landsat8 = ee.ImageCollection("LANDSAT/LC08/C01/T1_SR")
+  .filterDate(startdate_l8, enddate_l8)
+  .filterBounds(studyarea);
+
+// NDVI function for Landsat 4,5,7
+//   B4 is near infrared (0.77 - 0.90 micron)
+//   B3 is red (0.63 - 0.69 micron)
+var addNDVI = make_NDVI_func("B4", "B3");
+
+// landsat 4: compute NDVI and apply cloud mask
+var maskedcollection_l4 = landsat4
   .map(cloudMaskL457)
   .map(addNDVI)
   .select('NDVI');
+var studyareandvi_l4 = maskedcollection_l4.map(getmeanndvi);
 
-// Calculate mean ndvi per image
-var studyareandvi_time1 = maskedcollection_time1.map(getmeanndvi);
-// print output data to console so you can check it
-print(studyareandvi_time1)
-
-// Apply cloud mask and ndvi functions to time section 2
-var maskedcollection_time2 = landsat7_time2
+// landsat 5: compute NDVI and apply cloud mask
+var maskedcollection_l5 = landsat5
   .map(cloudMaskL457)
   .map(addNDVI)
   .select('NDVI');
+var studyareandvi_l5 = maskedcollection_l5.map(getmeanndvi);
 
-// Calculate mean ndvi per image
-var studyareandvi_time2 = maskedcollection_time2.map(getmeanndvi);
-
-// Apply cloud mask and ndvi functions to time section 3
-var maskedcollection_time3 = landsat8_time3
+// landsat 7: compute NDVI and apply cloud mask
+var maskedcollection_l7 = landsat7
   .map(cloudMaskL457)
-  .map(addNDVI_landsat8)
+  .map(addNDVI)
   .select('NDVI');
+var studyareandvi_l7 = maskedcollection_l7.map(getmeanndvi);
 
-// Calculate mean ndvi per image
-var studyareandvi_time3 = maskedcollection_time3.map(getmeanndvi);
+// NDVI function for Landsat 8
+//   B5 is near infrared (0.851 - 0.879 micron)
+//   B3 is red (0.636 - 0.673 micron)
+var addNDVI = make_NDVI_func("B5", "B4");
+
+// landsat 8: compute NDVI and apply cloud mask
+var maskedcollection_l8 = landsat8
+  .map(cloudMaskL457)
+  .map(addNDVI)
+  .select('NDVI');
+var studyareandvi_l8 = maskedcollection_l8.map(getmeanndvi);
+
+print("Starting export...");
 
 // Export the results (to your google drive)
 Export.table.toDrive({
-  collection: studyareandvi_time1,
-  description: 'Landsat5_SR_NDVI_Portal_1984_2011',
+  collection: studyareandvi_l4,
+  description: 'Landsat4_SR_NDVI',
   fileFormat: 'CSV'
 });
 
 Export.table.toDrive({
-  collection: studyareandvi_time2,
-  description: 'Landsat7_SR_NDVI_Portal_1999_2020',
+  collection: studyareandvi_l5,
+  description: 'Landsat5_SR_NDVI',
   fileFormat: 'CSV'
 });
 
 Export.table.toDrive({
-  collection: studyareandvi_time3,
-  description: 'Landsat8_SR_NDVI_Portal_2013_2020',
+  collection: studyareandvi_l7,
+  description: 'Landsat7_SR_NDVI',
   fileFormat: 'CSV'
 });
+
+Export.table.toDrive({
+  collection: studyareandvi_l8,
+  description: 'Landsat8_SR_NDVI',
+  fileFormat: 'CSV'
+});
+
+print("Export done!");
